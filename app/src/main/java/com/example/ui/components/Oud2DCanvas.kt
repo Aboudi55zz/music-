@@ -40,7 +40,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.OudCatalog
 import com.example.data.OudTuning
+import com.example.model.Accidental
 import com.example.model.Maqam
+import com.example.ui.theme.AmiriFontFamily
+import com.example.ui.theme.CairoFontFamily
 import com.example.ui.theme.QuarterToneHighlight
 import kotlin.math.PI
 import kotlin.math.abs
@@ -121,12 +124,12 @@ fun Oud2DCanvas(
                     .pointerInput(tuning, guideMaqam) {
                         val w = size.width.toFloat()
                         val h = size.height.toFloat()
-                        val nutY = h * 0.135f
-                        val bridgeY = h * 0.835f
+                        val nutY = h * 0.088f
+                        val bridgeY = h * 0.815f
                         val scaleLen = bridgeY - nutY
                         val neckBottomY = nutY + scaleLen * 0.50f
-                        val nutHalfW = min(w * 0.18f, 76.dp.toPx())
-                        val bridgeHalfW = min(w * 0.28f, 118.dp.toPx())
+                        val nutHalfW = (w * 0.22f).coerceIn(60.dp.toPx(), 105.dp.toPx())
+                        val bridgeHalfW = (w * 0.35f).coerceIn(96.dp.toPx(), 165.dp.toPx())
 
                         fun stringX(courseIdx: Int, y: Float): Float {
                             val t = ((y - nutY) / scaleLen).coerceIn(0f, 1f)
@@ -241,19 +244,19 @@ fun Oud2DCanvas(
                 val h = size.height
                 val cx = w * 0.5f
 
-                val pegboxTop = h * 0.015f
-                val nutY = h * 0.135f
-                val bridgeY = h * 0.835f
+                val pegboxTop = h * 0.008f
+                val nutY = h * 0.088f
+                val bridgeY = h * 0.815f
                 val scaleLen = bridgeY - nutY
                 // Authentic luthier proportions: neck-body joint at Perfect 5th (~1/3 scale), mir'a at Octave (1/2 scale)
                 val bodyTopY = nutY + scaleLen * 0.333f
                 val neckBottomY = nutY + scaleLen * 0.50f
-                val bodyBottomY = h * 0.98f
+                val bodyBottomY = h * 0.992f
 
-                val nutHalfW = min(w * 0.18f, 76.dp.toPx())
-                val bridgeHalfW = min(w * 0.28f, 118.dp.toPx())
+                val nutHalfW = (w * 0.22f).coerceIn(60.dp.toPx(), 105.dp.toPx())
+                val bridgeHalfW = (w * 0.35f).coerceIn(96.dp.toPx(), 165.dp.toPx())
                 val neckJoinHalfW = nutHalfW + (bridgeHalfW - nutHalfW) * 0.50f
-                val bellyHalfW = min(w * 0.46f, 200.dp.toPx())
+                val bellyHalfW = (w * 0.485f).coerceAtMost(w * 0.5f - 2.dp.toPx())
 
                 fun stringCenterX(courseIdx: Int, y: Float): Float {
                     val t = ((y - nutY) / scaleLen).coerceIn(0f, 1f)
@@ -460,7 +463,44 @@ fun Oud2DCanvas(
                     cornerRadius = CornerRadius(2.dp.toPx(), 2.dp.toPx())
                 )
 
-                // 7. Maqam Fingerboard Markers (مواقع نغمات المقام المختار على الزند مع أسماء النغمات)
+                // Course Symbols & Clefs at Nut header (⑥ 𝄢, ⑤ 𝄢, ④ 𝄢, ③ 𝄞, ② 𝄞, ① 𝄞)
+                courses.forEachIndexed { cIdx, course ->
+                    val nx = stringCenterX(cIdx, nutY)
+                    val nutSymbolText = "${course.courseCircledSymbol} ${course.clefSymbol}"
+                    val nutSymbolLayout = textMeasurer.measure(
+                        text = nutSymbolText,
+                        style = TextStyle(
+                            color = Color(0xFFE2B052),
+                            fontSize = 7.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = CairoFontFamily,
+                            textAlign = TextAlign.Center
+                        ),
+                        maxLines = 1
+                    )
+                    val pillW = nutSymbolLayout.size.width + 5.dp.toPx()
+                    val pillH = nutSymbolLayout.size.height + 2.dp.toPx()
+                    val pillY = nutY - 11.dp.toPx()
+                    drawRoundRect(
+                        color = Color(0xFF1E1109).copy(alpha = 0.88f),
+                        topLeft = Offset(nx - pillW * 0.5f, pillY),
+                        size = Size(pillW, pillH),
+                        cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx())
+                    )
+                    drawRoundRect(
+                        color = Color(0xFFE2B052).copy(alpha = 0.45f),
+                        topLeft = Offset(nx - pillW * 0.5f, pillY),
+                        size = Size(pillW, pillH),
+                        cornerRadius = CornerRadius(3.dp.toPx(), 3.dp.toPx()),
+                        style = Stroke(width = 0.7.dp.toPx())
+                    )
+                    drawText(
+                        textLayoutResult = nutSymbolLayout,
+                        topLeft = Offset(nx - nutSymbolLayout.size.width * 0.5f, pillY + 1.dp.toPx())
+                    )
+                }
+
+                // 7. Maqam Fingerboard Markers (مواقع نغمات المقام المختار على الزند مع أسماء النغمات والرموز)
                 if (showMaqamGuides && guideMaqam != null) {
                     courses.forEachIndexed { cIdx, course ->
                         val markers = OudCatalog.getMaqamMarkersForCourse(cIdx, course, guideMaqam)
@@ -470,9 +510,9 @@ fun Oud2DCanvas(
                             val dotColor = when {
                                 marker.isTonic -> Color(0xFFE2B052)
                                 marker.fingerNote.isQuarterTone -> QuarterToneHighlight
-                                else -> Color(0xFFF3E4CA).copy(alpha = 0.82f)
+                                else -> Color(0xFFF3E4CA).copy(alpha = 0.85f)
                             }
-                            val radius = if (marker.isTonic || marker.fingerNote.isQuarterTone) 4.dp.toPx() else 3.dp.toPx()
+                            val radius = if (marker.isTonic || marker.fingerNote.isQuarterTone) 4.5.dp.toPx() else 3.2.dp.toPx()
                             drawCircle(
                                 color = dotColor.copy(alpha = 0.30f),
                                 radius = radius + 2.dp.toPx(),
@@ -484,9 +524,11 @@ fun Oud2DCanvas(
                                 center = Offset(mx, my)
                             )
 
-                            // Compact note label right beside/above non-nut markers (Arabic Solfege + Western)
+                            // Note label pill with musical symbols (♪ Solfege with accidental + Clef Western)
                             if (marker.quarterToneStepsFromNut > 0) {
-                                val markerLabel = "${marker.fingerNote.arabicName}\n${marker.fingerNote.westernShort}"
+                                val solfegeText = "♪ ${marker.fingerNote.arabicName}"
+                                val westernText = "${marker.fingerNote.clefSymbol} ${marker.fingerNote.westernShort}"
+                                val markerLabel = "$solfegeText\n$westernText"
                                 val measured = textMeasurer.measure(
                                     text = markerLabel,
                                     style = TextStyle(
@@ -495,27 +537,35 @@ fun Oud2DCanvas(
                                         } else {
                                             Color(0xFFF6EAD4)
                                         },
-                                        fontSize = 6.5.sp,
-                                        lineHeight = 7.5.sp,
+                                        fontSize = 6.8.sp,
+                                        lineHeight = 7.8.sp,
                                         fontWeight = FontWeight.Bold,
+                                        fontFamily = CairoFontFamily,
                                         textAlign = TextAlign.Center
                                     ),
                                     maxLines = 2
                                 )
-                                val pillW = (measured.size.width + 4.dp.toPx()).coerceAtMost(24.dp.toPx())
+                                val pillW = (measured.size.width + 5.dp.toPx()).coerceAtMost(28.dp.toPx())
                                 val pillH = measured.size.height + 2.dp.toPx()
                                 val pillTop = (my - pillH * 0.5f).coerceIn(nutY + 2.dp.toPx(), neckBottomY - pillH)
                                 drawRoundRect(
                                     color = if (marker.isTonic) {
-                                        Color(0xFFE2B052).copy(alpha = 0.94f)
+                                        Color(0xFFE2B052).copy(alpha = 0.95f)
                                     } else if (marker.fingerNote.isQuarterTone) {
-                                        QuarterToneHighlight.copy(alpha = 0.92f)
+                                        QuarterToneHighlight.copy(alpha = 0.95f)
                                     } else {
-                                        Color(0xFF28180E).copy(alpha = 0.88f)
+                                        Color(0xFF28180E).copy(alpha = 0.90f)
                                     },
                                     topLeft = Offset(mx - pillW * 0.5f, pillTop),
                                     size = Size(pillW, pillH),
                                     cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx())
+                                )
+                                drawRoundRect(
+                                    color = if (marker.isTonic) Color(0xFFFFF2D6) else if (marker.fingerNote.isQuarterTone) Color(0xFFE0FFFF) else Color(0xFFE2B052).copy(alpha = 0.45f),
+                                    topLeft = Offset(mx - pillW * 0.5f, pillTop),
+                                    size = Size(pillW, pillH),
+                                    cornerRadius = CornerRadius(4.dp.toPx(), 4.dp.toPx()),
+                                    style = Stroke(width = 0.8.dp.toPx())
                                 )
                                 drawText(
                                     textLayoutResult = measured,
@@ -613,59 +663,89 @@ fun Oud2DCanvas(
                         }
                     }
 
-                    // 9. Per-String Open Note Badge Directly Below Bridge (Traditional Arabic + Solfege + Western)
-                    val badgeTopY = bridgeY + 7.dp.toPx()
-                    val maxBadgeW = (bridgeHalfW * 2f / 5.3f).coerceAtMost(44.dp.toPx())
-                    val solfegeLayout = textMeasurer.measure(
-                        text = course.openSolfegeName,
+                    // 9. Per-String Open Note Badge Directly Below Bridge (Symbols + Clef + Solfege + Western + Arabic)
+                    val badgeTopY = bridgeY + 6.dp.toPx()
+                    val maxBadgeW = (bridgeHalfW * 2f / 5.25f).coerceAtMost(56.dp.toPx())
+
+                    // Row 0: Clef + circled course number + course type sign (e.g. 𝄢 ⑥ ⚬ or 𝄞 ① ⚬⚬)
+                    val symbolHeaderLayout = textMeasurer.measure(
+                        text = "${course.clefSymbol} ${course.courseCircledSymbol} ${course.coursePairSymbol}",
                         style = TextStyle(
-                            color = if (isVibrating) Color(0xFFFFE6A7) else Color(0xFFF6EAD4),
-                            fontSize = 8.5.sp,
-                            fontWeight = FontWeight.ExtraBold,
+                            color = if (isVibrating) Color(0xFFFFD56B) else Color(0xFFE2B052),
+                            fontSize = 7.5.sp,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = CairoFontFamily,
                             textAlign = TextAlign.Center
                         ),
                         maxLines = 1
                     )
+
+                    // Row 1: Solfege with musical note symbol ♪ (e.g. ♪ دو)
+                    val solfegeLayout = textMeasurer.measure(
+                        text = "♪ ${course.openSolfegeName}",
+                        style = TextStyle(
+                            color = if (isVibrating) Color(0xFFFFFBE8) else Color(0xFFFBF4E8),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontFamily = CairoFontFamily,
+                            textAlign = TextAlign.Center
+                        ),
+                        maxLines = 1
+                    )
+
+                    // Row 2: Western pitch notation with octave (e.g. C2, F2, A2, D3, G3, C4)
                     val westernLayout = textMeasurer.measure(
                         text = course.openWesternName,
                         style = TextStyle(
-                            color = Color(0xFFE2B052),
-                            fontSize = 7.5.sp,
+                            color = if (isVibrating) Color(0xFFFFD56B) else Color(0xFFE5C07B),
+                            fontSize = 8.sp,
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
                         ),
                         maxLines = 1
                     )
+
+                    // Row 3: Traditional Arabic name in elegant Amiri font (e.g. بَم, قرار فا, عُشيران, دوكاه, نوى, كردان)
                     val arabicLayout = textMeasurer.measure(
                         text = course.shortArabicName,
                         style = TextStyle(
-                            color = Color(0xFFD6C2A3),
-                            fontSize = 6.5.sp,
-                            fontWeight = FontWeight.Medium,
+                            color = if (isVibrating) Color(0xFFFFF0D4) else Color(0xFFD6C2A3),
+                            fontSize = 7.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            fontFamily = AmiriFontFamily,
                             textAlign = TextAlign.Center
                         ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
 
-                    val badgeH = solfegeLayout.size.height + westernLayout.size.height + arabicLayout.size.height + 5.dp.toPx()
+                    val badgeH = symbolHeaderLayout.size.height + solfegeLayout.size.height + westernLayout.size.height + arabicLayout.size.height + 6.dp.toPx()
                     val badgeLeft = botX - maxBadgeW * 0.5f
+
+                    // Badge background & multi-layered borders
                     drawRoundRect(
-                        color = if (isVibrating) Color(0xFF422512).copy(alpha = 0.96f) else Color(0xFF1F120A).copy(alpha = 0.90f),
+                        color = if (isVibrating) Color(0xFF422512).copy(alpha = 0.98f) else Color(0xFF1B0F07).copy(alpha = 0.92f),
                         topLeft = Offset(badgeLeft, badgeTopY),
                         size = Size(maxBadgeW, badgeH),
                         cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
                     )
                     drawRoundRect(
-                        color = if (isVibrating) Color(0xFFE2B052) else Color(0xFFE2B052).copy(alpha = 0.42f),
+                        color = if (isVibrating) Color(0xFFFFD56B) else Color(0xFFE2B052).copy(alpha = 0.55f),
                         topLeft = Offset(badgeLeft, badgeTopY),
                         size = Size(maxBadgeW, badgeH),
                         cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx()),
-                        style = Stroke(width = if (isVibrating) 1.4.dp.toPx() else 0.8.dp.toPx())
+                        style = Stroke(width = if (isVibrating) 1.6.dp.toPx() else 0.9.dp.toPx())
                     )
-                    val line1Y = badgeTopY + 2.dp.toPx()
+
+                    val line0Y = badgeTopY + 2.dp.toPx()
+                    val line1Y = line0Y + symbolHeaderLayout.size.height
                     val line2Y = line1Y + solfegeLayout.size.height
                     val line3Y = line2Y + westernLayout.size.height
+
+                    drawText(
+                        textLayoutResult = symbolHeaderLayout,
+                        topLeft = Offset(botX - symbolHeaderLayout.size.width * 0.5f, line0Y)
+                    )
                     drawText(
                         textLayoutResult = solfegeLayout,
                         topLeft = Offset(botX - solfegeLayout.size.width * 0.5f, line1Y)
@@ -682,7 +762,7 @@ fun Oud2DCanvas(
                         )
                     )
 
-                    // Active pressed finger glow + floating 3-system note callout
+                    // Active pressed finger glow + floating musical sign note callout with pointer
                     if (pressedQt != null) {
                         val py = qtToY(pressedQt)
                         val px = stringCenterX(cIdx, py)
@@ -698,23 +778,27 @@ fun Oud2DCanvas(
                         )
 
                         val pressedNote = OudCatalog.noteAtPosition(cIdx, course, pressedQt)
-                        val calloutText = "${pressedNote.arabicName} • ${pressedNote.maqamPitchName} • ${pressedNote.westernName}"
+                        val calloutText = "${pressedNote.musicalNoteSymbol} ${pressedNote.arabicName}  ${pressedNote.clefSymbol} ${pressedNote.westernName}  •  ${pressedNote.maqamPitchName}  •  ~${pressedNote.frequencyHz.roundToInt()}Hz"
                         val calloutLayout = textMeasurer.measure(
                             text = calloutText,
                             style = TextStyle(
                                 color = Color(0xFF1A0E07),
                                 fontSize = 9.5.sp,
                                 fontWeight = FontWeight.ExtraBold,
+                                fontFamily = CairoFontFamily,
                                 textAlign = TextAlign.Center
                             ),
                             maxLines = 1
                         )
-                        val calloutW = calloutLayout.size.width + 12.dp.toPx()
+                        val calloutW = calloutLayout.size.width + 14.dp.toPx()
                         val calloutH = calloutLayout.size.height + 6.dp.toPx()
                         val calloutX = (px - calloutW * 0.5f).coerceIn(4.dp.toPx(), w - calloutW - 4.dp.toPx())
-                        val calloutY = (py - calloutH - 10.dp.toPx()).coerceAtLeast(4.dp.toPx())
+                        val calloutY = (py - calloutH - 12.dp.toPx()).coerceAtLeast(4.dp.toPx())
+                        val calloutColor = if (pressedNote.isQuarterTone) QuarterToneHighlight else Color(0xFFE2B052)
+
+                        // Floating badge pill
                         drawRoundRect(
-                            color = if (pressedNote.isQuarterTone) QuarterToneHighlight else Color(0xFFE2B052),
+                            color = calloutColor,
                             topLeft = Offset(calloutX, calloutY),
                             size = Size(calloutW, calloutH),
                             cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx())
@@ -724,11 +808,22 @@ fun Oud2DCanvas(
                             topLeft = Offset(calloutX, calloutY),
                             size = Size(calloutW, calloutH),
                             cornerRadius = CornerRadius(8.dp.toPx(), 8.dp.toPx()),
-                            style = Stroke(width = 1.dp.toPx())
+                            style = Stroke(width = 1.2.dp.toPx())
                         )
+
+                        // Downward pointer arrow connecting badge to finger position on string
+                        val pointerPath = Path().apply {
+                            moveTo(px - 4.5.dp.toPx(), calloutY + calloutH - 0.5.dp.toPx())
+                            lineTo(px + 4.5.dp.toPx(), calloutY + calloutH - 0.5.dp.toPx())
+                            lineTo(px, py - 4.dp.toPx())
+                            close()
+                        }
+                        drawPath(pointerPath, color = calloutColor)
+                        drawPath(pointerPath, color = Color(0xFF1F120A), style = Stroke(width = 1.dp.toPx()))
+
                         drawText(
                             textLayoutResult = calloutLayout,
-                            topLeft = Offset(calloutX + 6.dp.toPx(), calloutY + 3.dp.toPx())
+                            topLeft = Offset(calloutX + 7.dp.toPx(), calloutY + 3.dp.toPx())
                         )
                     }
                 }

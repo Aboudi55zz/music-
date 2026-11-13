@@ -23,6 +23,36 @@ data class OudCourse(
 
     val isWoundBass: Boolean
         get() = courseNumber >= 4
+
+    val courseCircledSymbol: String
+        get() = when (courseNumber) {
+            6 -> "⑥"
+            5 -> "⑤"
+            4 -> "④"
+            3 -> "③"
+            2 -> "②"
+            1 -> "①"
+            else -> "$courseNumber"
+        }
+
+    val courseRomanSymbol: String
+        get() = when (courseNumber) {
+            6 -> "VI"
+            5 -> "V"
+            4 -> "IV"
+            3 -> "III"
+            2 -> "II"
+            1 -> "I"
+            else -> "$courseNumber"
+        }
+
+    val clefSymbol: String
+        get() = if (courseNumber >= 4) "𝄢" else "𝄞" // Bass Clef (𝄢) for courses 6,5,4; Treble Clef (𝄞) for courses 3,2,1
+
+    val coursePairSymbol: String
+        get() = if (isDoubleCourse) "⚬⚬" else "⚬"
+
+    val musicalNoteSymbol: String = "♪"
 }
 
 enum class OudTuning(
@@ -81,6 +111,38 @@ data class OudFingerNote(
 ) {
     val isQuarterTone: Boolean
         get() = accidental == Accidental.HALF_FLAT || accidental == Accidental.HALF_SHARP
+
+    val accidentalSign: String
+        get() = when (accidental) {
+            Accidental.HALF_FLAT -> "𝄳"
+            Accidental.HALF_SHARP -> "𝄲"
+            Accidental.FLAT -> "♭"
+            Accidental.SHARP -> "♯"
+            Accidental.NATURAL -> "♮"
+        }
+
+    val clefSymbol: String
+        get() = if (absoluteQuarterToneOffset < -14) "𝄢" else "𝄞"
+
+    val musicalNoteSymbol: String = "♪"
+
+    val octaveNumber: Int
+        get() = 4 + Math.floorDiv(absoluteQuarterToneOffset, 24)
+
+    val subscriptOctave: String
+        get() = when (octaveNumber) {
+            2 -> "₂"
+            3 -> "₃"
+            4 -> "₄"
+            5 -> "₅"
+            else -> "$octaveNumber"
+        }
+
+    val westernSubscript: String
+        get() = "${westernShort}${subscriptOctave}"
+
+    val fullSignHeader: String
+        get() = "$musicalNoteSymbol $arabicName  $clefSymbol $westernName"
 }
 
 data class OudNeckMarker(
@@ -413,5 +475,32 @@ object OudCatalog {
                 finger to pos
             }
         }
+    }
+
+    fun findBestFingeringForNote(note: MusicalNote, tuning: OudTuning): Pair<Int, Int>? {
+        val courses = tuning.courses
+        val targetOffsets = listOf(
+            note.quarterToneOffset - 24, // Real sounding register of Arabic Oud
+            note.quarterToneOffset - 48,
+            note.quarterToneOffset
+        )
+        for (targetOff in targetOffsets) {
+            for (cIdx in courses.indices) {
+                val qt = targetOff - courses[cIdx].openQuarterToneOffset
+                if (qt in 0..MAX_NECK_QUARTER_TONES) {
+                    return cIdx to qt
+                }
+            }
+        }
+        val targetPc = ((note.quarterToneOffset % 24) + 24) % 24
+        for (cIdx in courses.indices) {
+            for (qt in 0..MAX_NECK_QUARTER_TONES) {
+                val pc = (((courses[cIdx].openQuarterToneOffset + qt) % 24) + 24) % 24
+                if (pc == targetPc) {
+                    return cIdx to qt
+                }
+            }
+        }
+        return null
     }
 }

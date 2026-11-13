@@ -40,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -52,8 +53,11 @@ import com.example.data.OudFingerNote
 import com.example.data.OudMaqamGuide
 import com.example.data.OudTuning
 import com.example.model.Maqam
+import com.example.ui.theme.AmiriFontFamily
+import com.example.ui.theme.CairoFontFamily
 import com.example.ui.theme.QuarterToneAccent
 import com.example.viewmodel.PlaybackUiState
+import kotlin.math.roundToInt
 
 @Composable
 fun MaqamOudTutorialCard(
@@ -183,30 +187,99 @@ fun MaqamOudTutorialCard(
             // Live Coaching Banner
             Surface(
                 color = if (activeStep?.oudNote?.isQuarterTone == true || lastOudNote?.isQuarterTone == true) {
-                    QuarterToneAccent.copy(alpha = 0.16f)
+                    QuarterToneAccent.copy(alpha = 0.18f)
                 } else {
-                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.65f)
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.75f)
                 },
-                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(
+                    1.2.dp,
+                    if (activeStep?.oudNote?.isQuarterTone == true || lastOudNote?.isQuarterTone == true) {
+                        QuarterToneAccent
+                    } else {
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    }
+                ),
+                shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                val coachingText = when {
-                    activeStep != null ->
-                        "الخطوة ${activeStep.stepNumber}: ${activeStep.oudNote.arabicName} • ${activeStep.oudNote.maqamPitchName} (${activeStep.oudNote.westernName})  |  ${activeStep.course.shortArabicName} • ${activeStep.fingerName}"
-                    lastOudNote != null ->
-                        "النغمة: ${lastOudNote.arabicName} • ${lastOudNote.maqamPitchName} (${lastOudNote.westernName})  |  وتر ${tuning.courses[lastOudNote.courseIndex].shortArabicName}"
-                    else ->
-                        "اضغط «عزف وشرح الخطوات» أو انقر على أي وتر أو خطوة بالأسفل"
+                Column(
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    when {
+                        activeStep != null -> {
+                            Text(
+                                text = "خطوة ${activeStep.stepNumber}: ${activeStep.oudNote.musicalNoteSymbol} ${activeStep.oudNote.arabicName}  ${activeStep.oudNote.clefSymbol} ${activeStep.oudNote.westernSubscript}  •  ${activeStep.oudNote.maqamPitchName}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = CairoFontFamily,
+                                color = if (activeStep.oudNote.isQuarterTone) QuarterToneAccent else MaterialTheme.colorScheme.onPrimaryContainer,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "${activeStep.course.courseCircledSymbol} الوتر ${activeStep.course.courseNumber}: ${activeStep.course.shortArabicName} (${activeStep.course.coursePairSymbol}) • ${activeStep.fingerName} • ${activeStep.positionLabel}",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontFamily = AmiriFontFamily,
+                                fontSize = 11.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        lastOudNote != null -> {
+                            val c = tuning.courses[lastOudNote.courseIndex]
+                            Text(
+                                text = "${lastOudNote.musicalNoteSymbol} ${lastOudNote.arabicName}  ${lastOudNote.clefSymbol} ${lastOudNote.westernSubscript}  •  ${lastOudNote.maqamPitchName}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = CairoFontFamily,
+                                color = if (lastOudNote.isQuarterTone) QuarterToneAccent else MaterialTheme.colorScheme.onPrimaryContainer,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "${c.courseCircledSymbol} الوتر ${c.courseNumber}: ${c.shortArabicName} (${c.coursePairSymbol}) • ${lastOudNote.frequencyHz.roundToInt()} Hz",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontFamily = AmiriFontFamily,
+                                fontSize = 11.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        else -> {
+                            Text(
+                                text = "♪ انقر على العود أو اضغط «عزف وشرح الخطوات» ♫",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = CairoFontFamily,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            )
+                            Text(
+                                text = "مواضع الأوتار والريشة والنوتات موضحة بالرموز والدرجات التراثية",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontFamily = AmiriFontFamily,
+                                fontSize = 11.5.sp,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
                 }
-                Text(
-                    text = coachingText,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                )
             }
+
+            // Interactive Musical Staff (Shows exact note on staff as maqam is played)
+            InteractiveMusicalStaff(
+                currentOudNote = activeStep?.oudNote ?: lastOudNote,
+                currentMusicalNote = activeStep?.note,
+                guideScale = maqam.ascendingScale,
+                onNoteTapped = { tappedNote ->
+                    val match = OudCatalog.findBestFingeringForNote(tappedNote, tuning)
+                    if (match != null) {
+                        onPluckCourse(match.first, match.second, true, 0.21f, false)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
 
             // Embedded Interactive 2D Oud Canvas
             Box(
@@ -252,34 +325,47 @@ fun MaqamOudTutorialCard(
                                 MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)
                             },
                             border = BorderStroke(
-                                width = if (isLastCourse) 1.4.dp else 0.8.dp,
+                                width = if (isLastCourse) 1.6.dp else 0.8.dp,
                                 color = if (isLastCourse) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
                             )
                         ) {
                             Column(
                                 modifier = Modifier.padding(vertical = 5.dp, horizontal = 2.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(1.dp)
                             ) {
                                 Text(
-                                    text = course.shortArabicName,
+                                    text = "${course.clefSymbol} ${course.courseCircledSymbol} ${course.coursePairSymbol}",
                                     fontSize = 8.5.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = CairoFontFamily,
+                                    color = if (isLastCourse) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center,
                                     maxLines = 1
                                 )
                                 Text(
-                                    text = course.openSolfegeName,
+                                    text = "♪ ${course.openSolfegeName}",
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = MaterialTheme.colorScheme.onSurface,
+                                    fontFamily = CairoFontFamily,
+                                    color = if (isLastCourse) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                     textAlign = TextAlign.Center,
                                     maxLines = 1
                                 )
                                 Text(
                                     text = course.openWesternName,
+                                    fontSize = 9.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    fontFamily = CairoFontFamily,
+                                    color = Color(0xFFD6A85A),
+                                    textAlign = TextAlign.Center,
+                                    maxLines = 1
+                                )
+                                Text(
+                                    text = course.shortArabicName,
                                     fontSize = 9.sp,
                                     fontWeight = FontWeight.Bold,
+                                    fontFamily = AmiriFontFamily,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     textAlign = TextAlign.Center,
                                     maxLines = 1
@@ -328,7 +414,7 @@ fun MaqamOudTutorialCard(
                     val isQt = step.oudNote.isQuarterTone
                     Card(
                         modifier = Modifier
-                            .width(126.dp)
+                            .width(132.dp)
                             .clickable {
                                 onPluckCourse(step.courseIndex, step.quarterToneSteps, true, 0.21f, false)
                             }
@@ -337,12 +423,12 @@ fun MaqamOudTutorialCard(
                         colors = CardDefaults.cardColors(
                             containerColor = when {
                                 isCurrent -> MaterialTheme.colorScheme.primaryContainer
-                                isQt -> QuarterToneAccent.copy(alpha = 0.14f)
+                                isQt -> QuarterToneAccent.copy(alpha = 0.16f)
                                 else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
                             }
                         ),
                         border = BorderStroke(
-                            width = if (isCurrent || idx == 0) 1.6.dp else 1.dp,
+                            width = if (isCurrent || idx == 0) 1.8.dp else 1.dp,
                             color = when {
                                 isCurrent -> MaterialTheme.colorScheme.primary
                                 isQt -> QuarterToneAccent
@@ -351,34 +437,47 @@ fun MaqamOudTutorialCard(
                         )
                     ) {
                         Column(
-                            modifier = Modifier.padding(10.dp),
+                            modifier = Modifier.padding(9.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                            verticalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Text(
-                                text = "خطوة ${step.stepNumber}",
+                                text = "${step.course.clefSymbol} خطوة ${step.stepNumber}",
                                 style = MaterialTheme.typography.labelSmall,
+                                fontFamily = CairoFontFamily,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = "${step.oudNote.arabicName} (${step.oudNote.westernName})",
-                                style = MaterialTheme.typography.titleSmall,
+                                text = "♪ ${step.oudNote.arabicName}",
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
+                                fontFamily = CairoFontFamily,
                                 color = if (isQt) QuarterToneAccent else MaterialTheme.colorScheme.onSurface,
                                 textAlign = TextAlign.Center,
                                 maxLines = 1
                             )
                             Text(
-                                text = step.oudNote.maqamPitchName,
+                                text = step.oudNote.westernSubscript,
                                 style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.SemiBold,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = CairoFontFamily,
+                                color = Color(0xFFD6A85A),
+                                textAlign = TextAlign.Center,
+                                maxLines = 1
+                            )
+                            Text(
+                                text = step.oudNote.maqamPitchName,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = FontWeight.Bold,
+                                fontFamily = AmiriFontFamily,
                                 color = MaterialTheme.colorScheme.secondary,
                                 textAlign = TextAlign.Center,
                                 maxLines = 1
                             )
                             Text(
-                                text = "الوتر ${step.course.courseNumber}: ${step.course.shortArabicName}",
+                                text = "${step.course.courseCircledSymbol} الوتر ${step.course.courseNumber}: ${step.course.shortArabicName}",
                                 style = MaterialTheme.typography.labelSmall,
+                                fontFamily = CairoFontFamily,
                                 color = MaterialTheme.colorScheme.primary,
                                 textAlign = TextAlign.Center,
                                 maxLines = 1
@@ -387,6 +486,7 @@ fun MaqamOudTutorialCard(
                                 text = step.fingerName,
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.SemiBold,
+                                fontFamily = CairoFontFamily,
                                 textAlign = TextAlign.Center,
                                 maxLines = 1
                             )
