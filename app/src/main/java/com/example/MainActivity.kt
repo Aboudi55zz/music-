@@ -18,10 +18,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.Hearing
 import androidx.compose.material.icons.outlined.LibraryMusic
+import androidx.compose.material.icons.outlined.MusicNote
 import androidx.compose.material.icons.outlined.Piano
 import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.Hearing
 import androidx.compose.material.icons.rounded.LibraryMusic
+import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Piano
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +57,7 @@ import androidx.navigation.navArgument
 import com.example.ui.screens.EncyclopediaScreen
 import com.example.ui.screens.KeyboardStudioScreen
 import com.example.ui.screens.MaqamDetailScreen
+import com.example.ui.screens.OudScreen
 import com.example.ui.screens.QuizScreen
 import com.example.ui.screens.TheoryScreen
 import com.example.ui.theme.MaqamatTheme
@@ -62,6 +65,7 @@ import com.example.viewmodel.MaqamViewModel
 
 object AppRoutes {
     const val ROUTE_ENCYCLOPEDIA = "encyclopedia"
+    const val ROUTE_OUD = "oud"
     const val ROUTE_STUDIO = "studio"
     const val ROUTE_THEORY = "theory"
     const val ROUTE_QUIZ = "quiz"
@@ -85,6 +89,13 @@ private val topTabs = listOf(
         selectedIcon = Icons.Rounded.LibraryMusic,
         unselectedIcon = Icons.Outlined.LibraryMusic,
         testTag = "nav_tab_encyclopedia"
+    ),
+    TopTabItem(
+        route = AppRoutes.ROUTE_OUD,
+        labelRes = R.string.nav_oud,
+        selectedIcon = Icons.Rounded.MusicNote,
+        unselectedIcon = Icons.Outlined.MusicNote,
+        testTag = "nav_tab_oud"
     ),
     TopTabItem(
         route = AppRoutes.ROUTE_STUDIO,
@@ -145,6 +156,13 @@ fun MaqamatApp(viewModel: MaqamViewModel = viewModel()) {
     val currentStreak by viewModel.currentStreak.collectAsStateWithLifecycle()
     val bestStreak by viewModel.bestStreak.collectAsStateWithLifecycle()
     val totalCorrect by viewModel.totalCorrect.collectAsStateWithLifecycle()
+    val oudTuning by viewModel.oudTuning.collectAsStateWithLifecycle()
+    val oudGuideMaqam by viewModel.oudGuideMaqam.collectAsStateWithLifecycle()
+    val showOudGuides by viewModel.showOudGuides.collectAsStateWithLifecycle()
+    val lastOudNote by viewModel.lastOudNote.collectAsStateWithLifecycle()
+    val oudPulseTrigger by viewModel.oudPulseTrigger.collectAsStateWithLifecycle()
+    val oudExternalCourse by viewModel.oudExternalCourse.collectAsStateWithLifecycle()
+    val oudExternalPressedQt by viewModel.oudExternalPressedQt.collectAsStateWithLifecycle()
 
     val isTopLevelRoute = topTabs.any { it.route == currentRoute }
 
@@ -267,6 +285,26 @@ fun MaqamatApp(viewModel: MaqamViewModel = viewModel()) {
                             )
                         }
 
+                        composable(AppRoutes.ROUTE_OUD) {
+                            OudScreen(
+                                allMaqamat = viewModel.allMaqamat,
+                                tuning = oudTuning,
+                                guideMaqam = oudGuideMaqam,
+                                showGuides = showOudGuides,
+                                lastNote = lastOudNote,
+                                pulseTrigger = oudPulseTrigger,
+                                externalCourse = oudExternalCourse,
+                                externalPressedQt = oudExternalPressedQt,
+                                playbackState = playbackState,
+                                onSelectTuning = viewModel::selectOudTuning,
+                                onSelectGuideMaqam = viewModel::selectOudGuideMaqam,
+                                onToggleGuides = viewModel::toggleShowOudGuides,
+                                onPluckCourse = viewModel::pluckOudCourse,
+                                onStrumAll = viewModel::strumAllOudCourses,
+                                onPlayMaqamOnOud = viewModel::playGuideMaqamOnOud
+                            )
+                        }
+
                         composable(AppRoutes.ROUTE_STUDIO) {
                             KeyboardStudioScreen(
                                 allMaqamat = viewModel.allMaqamat,
@@ -336,6 +374,11 @@ fun MaqamatApp(viewModel: MaqamViewModel = viewModel()) {
                                 isFavorite = maqam.id in favoriteIds,
                                 selectedInstrument = selectedInstrument,
                                 playbackState = playbackState,
+                                oudTuning = oudTuning,
+                                lastOudNote = lastOudNote,
+                                oudPulseTrigger = oudPulseTrigger,
+                                oudExternalCourse = oudExternalCourse,
+                                oudExternalPressedQt = oudExternalPressedQt,
                                 onBack = {
                                     viewModel.stopPlayback()
                                     navController.popBackStack()
@@ -344,7 +387,15 @@ fun MaqamatApp(viewModel: MaqamViewModel = viewModel()) {
                                 onSelectInstrument = viewModel::selectInstrument,
                                 onTempoChange = viewModel::setTempoMultiplier,
                                 onPlayNote = viewModel::playSingleNote,
-                                onPlaySequence = viewModel::playNoteSequence
+                                onPlaySequence = viewModel::playNoteSequence,
+                                onSelectOudTuning = viewModel::selectOudTuning,
+                                onPluckOudCourse = viewModel::pluckOudCourse,
+                                onPlayOudGuide = viewModel::playOudGuideSequence,
+                                onOpenInOud = {
+                                    viewModel.stopPlayback()
+                                    viewModel.selectOudGuideMaqam(maqam)
+                                    navigateToTab(AppRoutes.ROUTE_OUD)
+                                }
                             )
                         }
                     }

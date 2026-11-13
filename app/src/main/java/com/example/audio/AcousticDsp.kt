@@ -149,10 +149,11 @@ internal class FastNoise(seed: Long = 0x5DEECE66DL) {
  * into a realistic wooden Oud, Qanun soundboard, or bamboo Nay.
  */
 internal class InstrumentBodyFilter(sampleRate: Double) {
-    private val oudAir = BiquadFilter().apply { setBandPass(sampleRate, 118.0, 2.2) }
-    private val oudWoodLow = BiquadFilter().apply { setBandPass(sampleRate, 255.0, 1.9) }
-    private val oudWoodMid = BiquadFilter().apply { setBandPass(sampleRate, 540.0, 1.6) }
-    private val oudTopSmooth = BiquadFilter().apply { setLowPass(sampleRate, 3600.0, 0.707) }
+    private val oudAir = BiquadFilter().apply { setBandPass(sampleRate, 102.0, 2.0) }
+    private val oudWoodLow = BiquadFilter().apply { setBandPass(sampleRate, 215.0, 1.7) }
+    private val oudWoodMid = BiquadFilter().apply { setBandPass(sampleRate, 430.0, 1.6) }
+    private val oudBridgePresence = BiquadFilter().apply { setPeaking(sampleRate, 1120.0, 1.2, 2.4) }
+    private val oudTopSmooth = BiquadFilter().apply { setLowPass(sampleRate, 3400.0, 0.72) }
 
     private val qanunBridge = BiquadFilter().apply { setPeaking(sampleRate, 390.0, 1.5, 4.5) }
     private val qanunSparkle = BiquadFilter().apply { setPeaking(sampleRate, 1250.0, 1.4, 3.8) }
@@ -163,10 +164,11 @@ internal class InstrumentBodyFilter(sampleRate: Double) {
     private val naySmooth = BiquadFilter().apply { setLowPass(sampleRate, 4200.0, 0.707) }
 
     fun shapeOud(input: Double): Double {
-        val body = oudAir.process(input) * 0.55 +
-            oudWoodLow.process(input) * 0.52 +
-            oudWoodMid.process(input) * 0.38
-        return oudTopSmooth.process(input * 0.65 + body * 0.75)
+        val body = oudAir.process(input) * 0.65 +
+            oudWoodLow.process(input) * 0.62 +
+            oudWoodMid.process(input) * 0.42
+        val direct = oudBridgePresence.process(input) * 0.62
+        return oudTopSmooth.process(direct + body * 0.72)
     }
 
     fun shapeQanun(input: Double): Double {

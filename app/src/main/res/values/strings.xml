@@ -1,7 +1,8 @@
 <resources>
     <string name="app_name">مقامات</string>
     <string name="nav_encyclopedia">المقامات</string>
-    <string name="nav_studio">لوحة العزف</string>
+    <string name="nav_oud">العود</string>
+    <string name="nav_studio">البيانو</string>
     <string name="nav_theory">النظريات</string>
     <string name="nav_quiz">تحدي الأذن</string>
     <string name="search_hint">ابحث عن مقام، جنس، أو طابع...</string>

@@ -5,6 +5,9 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.audio.MaqamAudioEngine
 import com.example.data.MaqamRepository
+import com.example.data.OudCatalog
+import com.example.data.OudFingerNote
+import com.example.data.OudTuning
 import com.example.data.PreferencesRepository
 import com.example.data.TheoryRepository
 import com.example.model.InstrumentTimbre
@@ -12,6 +15,7 @@ import com.example.model.Maqam
 import com.example.model.MaqamFamily
 import com.example.model.MusicalNote
 import com.example.model.TheoryTopic
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -116,6 +120,28 @@ class MaqamViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _studioActiveNoteId = MutableStateFlow<String?>(null)
     val studioActiveNoteId: StateFlow<String?> = _studioActiveNoteId.asStateFlow()
+
+    // 2D Interactive Oud state
+    private val _oudTuning = MutableStateFlow(OudTuning.ARABIC_STANDARD)
+    val oudTuning: StateFlow<OudTuning> = _oudTuning.asStateFlow()
+
+    private val _oudGuideMaqam = MutableStateFlow<Maqam?>(featuredMaqam)
+    val oudGuideMaqam: StateFlow<Maqam?> = _oudGuideMaqam.asStateFlow()
+
+    private val _showOudGuides = MutableStateFlow(true)
+    val showOudGuides: StateFlow<Boolean> = _showOudGuides.asStateFlow()
+
+    private val _lastOudNote = MutableStateFlow<OudFingerNote?>(null)
+    val lastOudNote: StateFlow<OudFingerNote?> = _lastOudNote.asStateFlow()
+
+    private val _oudPulseTrigger = MutableStateFlow(0L)
+    val oudPulseTrigger: StateFlow<Long> = _oudPulseTrigger.asStateFlow()
+
+    private val _oudExternalCourse = MutableStateFlow<Int?>(null)
+    val oudExternalCourse: StateFlow<Int?> = _oudExternalCourse.asStateFlow()
+
+    private val _oudExternalPressedQt = MutableStateFlow<Int?>(null)
+    val oudExternalPressedQt: StateFlow<Int?> = _oudExternalPressedQt.asStateFlow()
 
     // Ear training quiz state
     private val _quizDifficulty = MutableStateFlow(QuizDifficulty.FUNDAMENTALS)
@@ -237,6 +263,143 @@ class MaqamViewModel(application: Application) : AndroidViewModel(application) {
     fun stopDrone() {
         audioEngine.stopDrone()
         _playbackState.update { it.copy(isDroneActive = false, droneNoteId = null) }
+    }
+
+    // ==================== 2D OUD ACTIONS ====================
+    fun selectOudTuning(tuning: OudTuning) {
+        _oudTuning.value = tuning
+        _lastOudNote.value = null
+    }
+
+    fun selectOudGuideMaqam(maqam: Maqam?) {
+        _oudGuideMaqam.value = maqam
+    }
+
+    fun toggleShowOudGuides() {
+        _showOudGuides.value = !_showOudGuides.value
+    }
+
+    fun pluckOudCourse(
+        courseIndex: Int,
+        quarterToneSteps: Int,
+        triggerCanvasPulse: Boolean = false,
+        pluckPosRatio: Float = 0.21f,
+        isUpstroke: Boolean = false
+    ) {
+        val courses = _oudTuning.value.courses
+        if (courseIndex !in courses.indices) return
+        val course = courses[courseIndex]
+        val note = OudCatalog.noteAtPosition(courseIndex, course, quarterToneSteps)
+        _lastOudNote.value = note
+        if (triggerCanvasPulse) {
+            _oudExternalCourse.value = courseIndex
+            _oudExternalPressedQt.value = quarterToneSteps
+            _oudPulseTrigger.value = System.currentTimeMillis()
+        }
+        audioEngine.playOudNote(
+            frequencyHz = note.frequencyHz,
+            isDoubleCourse = course.isDoubleCourse,
+            isWoundBass = course.isWoundBass,
+            isStopped = quarterToneSteps > 0,
+            pluckPosRatio = pluckPosRatio.toDouble(),
+            isUpstroke = isUpstroke,
+            durationMs = if (quarterToneSteps == 0) 1450L else 1200L
+        )
+    }
+
+    fun strumAllOudCourses() {
+        viewModelScope.launch {
+            val courses = _oudTuning.value.courses
+            _oudExternalCourse.value = -1
+            _oudExternalPressedQt.value = 0
+            _oudPulseTrigger.value = System.currentTimeMillis()
+            courses.forEachIndexed { idx, course ->
+                val note = OudCatalog.noteAtPosition(idx, course, 0)
+                _lastOudNote.value = note
+                audioEngine.playOudNote(
+                    frequencyHz = note.frequencyHz,
+                    isDoubleCourse = course.isDoubleCourse,
+                    isWoundBass = course.isWoundBass,
+                    isStopped = false,
+                    pluckPosRatio = 0.22,
+                    isUpstroke = false,
+                    durationMs = 1550L
+                )
+                delay(40L)
+            }
+        }
+    }
+
+    fun playGuideMaqamOnOud() {
+        val maqam = _oudGuideMaqam.value ?: return
+        val tag = "oud_scale_${maqam.id}"
+        if (_playbackState.value.isPlaying && _playbackState.value.sourceTag == tag) {
+            stopPlayback()
+            return
+        }
+        stopPlayback()
+        val guide = OudCatalog.buildMaqamOudGuide(maqam, _oudTuning.value)
+        val steps = guide.steps
+        if (steps.isEmpty()) return
+
+        // Use the exact real Oud register (1 octave below written treble) & exact fingering steps
+        val oudScaleNotes = steps.map { step ->
+            step.note.copy(quarterToneOffset = step.oudNote.absoluteQuarterToneOffset)
+        }
+        _playbackState.update { it.copy(isPlaying = true, sourceTag = tag, activeNoteIndex = 0) }
+        audioEngine.playSequence(
+            notes = oudScaleNotes,
+            timbre = InstrumentTimbre.OUD,
+            tempoMultiplier = _playbackState.value.tempoMultiplier,
+            onActiveNoteChanged = { idx ->
+                _playbackState.update { it.copy(activeNoteIndex = idx) }
+                if (idx in steps.indices) {
+                    val step = steps[idx]
+                    _lastOudNote.value = step.oudNote
+                    _oudExternalCourse.value = step.courseIndex
+                    _oudExternalPressedQt.value = step.quarterToneSteps
+                    _oudPulseTrigger.value = System.currentTimeMillis()
+                }
+            },
+            onCompleted = {
+                _playbackState.update { it.copy(isPlaying = false, sourceTag = "", activeNoteIndex = -1) }
+            }
+        )
+    }
+
+    fun playOudGuideSequence(guide: com.example.data.OudMaqamGuide) {
+        val tag = "detail_oud_${guide.maqam.id}"
+        if (_playbackState.value.isPlaying && _playbackState.value.sourceTag == tag) {
+            stopPlayback()
+            return
+        }
+        stopPlayback()
+        val steps = guide.steps
+        if (steps.isEmpty()) return
+
+        // Convert each step's exact Oud frequency note into a playable sequence
+        val oudNotes = steps.map { step ->
+            step.note.copy(quarterToneOffset = step.oudNote.absoluteQuarterToneOffset)
+        }
+        _playbackState.update { it.copy(isPlaying = true, sourceTag = tag, activeNoteIndex = 0) }
+        audioEngine.playSequence(
+            notes = oudNotes,
+            timbre = InstrumentTimbre.OUD,
+            tempoMultiplier = _playbackState.value.tempoMultiplier,
+            onActiveNoteChanged = { idx ->
+                _playbackState.update { it.copy(activeNoteIndex = idx) }
+                if (idx in steps.indices) {
+                    val step = steps[idx]
+                    _lastOudNote.value = step.oudNote
+                    _oudExternalCourse.value = step.courseIndex
+                    _oudExternalPressedQt.value = step.quarterToneSteps
+                    _oudPulseTrigger.value = System.currentTimeMillis()
+                }
+            },
+            onCompleted = {
+                _playbackState.update { it.copy(isPlaying = false, sourceTag = "", activeNoteIndex = -1) }
+            }
+        )
     }
 
     fun setQuizDifficulty(difficulty: QuizDifficulty) {

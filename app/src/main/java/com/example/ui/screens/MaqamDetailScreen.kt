@@ -61,11 +61,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.R
+import com.example.data.OudFingerNote
+import com.example.data.OudMaqamGuide
+import com.example.data.OudTuning
 import com.example.model.InstrumentTimbre
 import com.example.model.JinsInfo
 import com.example.model.Maqam
 import com.example.model.MusicalNote
 import com.example.ui.components.InstrumentSelectorBar
+import com.example.ui.components.MaqamOudTutorialCard
 import com.example.ui.components.MusicalStaffView
 import com.example.ui.components.QuarterToneKeyboard
 import com.example.ui.theme.QuarterToneAccent
@@ -85,12 +89,21 @@ fun MaqamDetailScreen(
     isFavorite: Boolean,
     selectedInstrument: InstrumentTimbre,
     playbackState: PlaybackUiState,
+    oudTuning: OudTuning,
+    lastOudNote: OudFingerNote?,
+    oudPulseTrigger: Long,
+    oudExternalCourse: Int?,
+    oudExternalPressedQt: Int?,
     onBack: () -> Unit,
     onToggleFavorite: () -> Unit,
     onSelectInstrument: (InstrumentTimbre) -> Unit,
     onTempoChange: (Float) -> Unit,
     onPlayNote: (MusicalNote) -> Unit,
     onPlaySequence: (List<MusicalNote>, String) -> Unit,
+    onSelectOudTuning: (OudTuning) -> Unit,
+    onPluckOudCourse: (Int, Int, Boolean, Float, Boolean) -> Unit,
+    onPlayOudGuide: (OudMaqamGuide) -> Unit,
+    onOpenInOud: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var notationMode by remember(maqam.id) { mutableStateOf(StaffNotationMode.ASCENDING) }
@@ -503,7 +516,24 @@ fun MaqamDetailScreen(
                 }
             }
 
-            // 5. Interactive Mini Quarter-Tone Keyboard
+            // 5. Embedded 2D Oud Tutorial (Explains & Plays How to Play This Maqam on Oud)
+            item {
+                MaqamOudTutorialCard(
+                    maqam = maqam,
+                    tuning = oudTuning,
+                    lastOudNote = lastOudNote,
+                    pulseTrigger = oudPulseTrigger,
+                    externalCourse = oudExternalCourse,
+                    externalPressedQt = oudExternalPressedQt,
+                    playbackState = playbackState,
+                    onSelectTuning = onSelectOudTuning,
+                    onPluckCourse = onPluckOudCourse,
+                    onPlayGuideSequence = onPlayOudGuide,
+                    onOpenFullOud = onOpenInOud
+                )
+            }
+
+            // 6. Interactive Mini Quarter-Tone Keyboard
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(
@@ -516,7 +546,7 @@ fun MaqamDetailScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                         Text(
-                            text = "جرّب عزف المقام بنفسك",
+                            text = "جرّب عزف المقام على البيانو",
                             style = MaterialTheme.typography.titleLarge
                         )
                     }

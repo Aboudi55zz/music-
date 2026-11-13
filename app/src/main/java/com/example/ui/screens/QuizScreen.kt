@@ -19,13 +19,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.NavigateNext
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Hearing
 import androidx.compose.material.icons.rounded.LocalFireDepartment
-import androidx.compose.material.icons.rounded.NavigateNext
-import androidx.compose.material.icons.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material3.Button
@@ -314,7 +314,7 @@ fun QuizScreen(
                                         .testTag("quiz_open_detail")
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Rounded.OpenInNew,
+                                        imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
                                         contentDescription = null,
                                         modifier = Modifier.size(18.dp)
                                     )
@@ -332,7 +332,7 @@ fun QuizScreen(
                                     Text("السؤال التالي")
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Icon(
-                                        imageVector = Icons.Rounded.NavigateNext,
+                                        imageVector = Icons.AutoMirrored.Rounded.NavigateNext,
                                         contentDescription = null,
                                         modifier = Modifier.size(18.dp)
                                     )

@@ -17,13 +17,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.VolumeOff
+import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.MusicNote
 import androidx.compose.material.icons.rounded.Piano
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Stop
-import androidx.compose.material.icons.rounded.VolumeOff
-import androidx.compose.material.icons.rounded.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -223,7 +223,7 @@ fun KeyboardStudioScreen(
                                 .testTag("studio_drone_toggle")
                         ) {
                             Icon(
-                                imageVector = if (playbackState.isDroneActive) Icons.Rounded.VolumeUp else Icons.Rounded.VolumeOff,
+                                imageVector = if (playbackState.isDroneActive) Icons.AutoMirrored.Rounded.VolumeUp else Icons.AutoMirrored.Rounded.VolumeOff,
                                 contentDescription = null,
                                 tint = if (playbackState.isDroneActive) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(18.dp)
