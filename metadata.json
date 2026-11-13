@@ -1,0 +1,6 @@
+{
+  "name": "مقامات",
+  "description": "موسوعة تفاعلية لشرح المقامات الموسيقية العربية مع أمثلة صوتية حية ونوتات موسيقية ولوحة عزف ربع تون.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

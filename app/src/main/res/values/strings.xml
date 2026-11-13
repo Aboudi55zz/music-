@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">مقامات</string>
+    <string name="nav_encyclopedia">المقامات</string>
+    <string name="nav_studio">لوحة العزف</string>
+    <string name="nav_theory">النظريات</string>
+    <string name="nav_quiz">تحدي الأذن</string>
+    <string name="search_hint">ابحث عن مقام، جنس، أو طابع...</string>
+    <string name="back_button">رجوع</string>
+    <string name="favorite_toggle">المفضلة</string>
+    <string name="play_scale">عزف السلم</string>
+    <string name="play_melody">مثال لحني</string>
+    <string name="stop_audio">إيقاف</string>
+    <string name="hero_banner_desc">صورة آلة العود العربي والنوتات الموسيقية</string>
+</resources>
